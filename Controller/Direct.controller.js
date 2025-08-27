@@ -34,8 +34,8 @@ const generatePDF = (type, data, customerDetails, products, dbValues) => {
         .text('Kids Crackers Park', 50, 80)
         .text('Sivakasi', 50, 95)
         .text('Mobile: +91 96297 24212', 50, 110)
-        .text('Email: nivasramasamy27@gmail.com', 50, 125)
-        .text('Website: www.srimaheswarigroupofcompanies.in', 50, 140);
+        .text('Email: kidscrackerspark@gmail.com', 50, 125)
+        .text('Website: kidscrackerspark.vercel.app', 50, 140);
 
       // Customer Details
       const customerType = data.customer_type === 'Customer of Selected Agent' ? 'Customer - Agent' : data.customer_type || 'User';
