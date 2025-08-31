@@ -996,26 +996,11 @@ exports.createBooking = async (req, res) => {
         ['booked', quotation_id]
       );
     }
-    // Send email to admin
-    await sendBookingEmail(
-      'kidscrackerspark@gmail.com',
-      {
-        order_id,
-        customer_type: finalCustomerType,
-        net_rate: parsedNetRate,
-        you_save: parsedYouSave,
-        total: parsedTotal
-      },
-      customerDetails,
-      pdfPath,
-      products,
-      'invoice'
-    );
 
-    // Send email to customer if email exists
-    if (customerDetails.email) {
+    // Send email to admin
+    try {
       await sendBookingEmail(
-        customerDetails.email,
+        'kidscrackerspark@gmail.com',
         {
           order_id,
           customer_type: finalCustomerType,
@@ -1026,9 +1011,33 @@ exports.createBooking = async (req, res) => {
         customerDetails,
         pdfPath,
         products,
-        'invoice',
-        'booked'
+        'invoice'
       );
+    } catch (emailErr) {
+      console.error(`Failed to send admin email for order_id ${order_id}:`, emailErr.message);
+    }
+
+    // Send email to customer if email exists
+    if (customerDetails.email) {
+      try {
+        await sendBookingEmail(
+          customerDetails.email,
+          {
+            order_id,
+            customer_type: finalCustomerType,
+            net_rate: parsedNetRate,
+            you_save: parsedYouSave,
+            total: parsedTotal
+          },
+          customerDetails,
+          pdfPath,
+          products,
+          'invoice',
+          'booked'
+        );
+      } catch (emailErr) {
+        console.error(`Failed to send customer email for order_id ${order_id}:`, emailErr.message);
+      }
     }
 
     await pool.query('COMMIT');
@@ -1041,7 +1050,8 @@ exports.createBooking = async (req, res) => {
       customer_type: bookingResult.rows[0].customer_type,
       pdf_path: bookingResult.rows[0].pdf,
       order_id: bookingResult.rows[0].order_id,
-      quotation_id
+      quotation_id,
+      pdf_url: `/invoice/${order_id}`
     });
   } catch (err) {
     await pool.query('ROLLBACK');
