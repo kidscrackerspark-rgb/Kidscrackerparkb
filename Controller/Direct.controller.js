@@ -14,9 +14,6 @@ const pool = new Pool({
   database: process.env.PGDATABASE,
 });
 
-const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
-const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
-
 const generatePDF = (type, data, customerDetails, products, dbValues) => {
   return new Promise((resolve, reject) => {
     try {
@@ -192,8 +189,8 @@ async function sendBookingEmail(toEmail, bookingData, customerDetails, pdfPath, 
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'phoenixcrackersfwc@gmail.com',
-        pass: 'eegm mdht oehj bbhg'
+        user: 'kidscrackerspark@gmail.com',
+        pass: 'mwmv tccc thsb ieyi'
       }
     });
 
@@ -205,7 +202,7 @@ async function sendBookingEmail(toEmail, bookingData, customerDetails, pdfPath, 
     const idField = type === 'quotation' ? 'Quotation ID' : 'Order ID';
     const idValue = bookingData.quotation_id || bookingData.order_id;
 
-    if (toEmail === 'nivasramasamy27@gmail.com' && type === 'invoice' && status === 'booked') {
+    if (toEmail === 'kidscrackerspark@gmail.com' && type === 'invoice' && status === 'booked') {
       // New booking notification for admin
       subject = `New Booking Notification: Order ${idValue}`;
       text = `
@@ -229,7 +226,7 @@ Attached is the estimate bill for reference.
 Best regards,
 Phoenix Crackers Team
       `;
-    } else if (toEmail === 'nivasramasamy27@gmail.com' && type === 'invoice' && status === 'paid') {
+    } else if (toEmail === 'kidscrackerspark@gmail.com' && type === 'invoice' && status === 'paid') {
       // New payment notification for admin
       subject = `New Payment Notification: Order ${idValue}`;
       text = `
@@ -305,7 +302,7 @@ Best regards,
 Phoenix Crackers Team
 
 Transport Details:
-${Object.entries(transportDetails).map(([key, value]) => `${key}: ${value}`).join('\n')}
+${transportDetails ? Object.entries(transportDetails).map(([key, value]) => `${key}: ${value}`).join('\n') : 'N/A'}
 
 Booking Details:
 ${idField}: ${idValue}
@@ -329,31 +326,7 @@ For any queries, contact us at +91 63836 59214.
 
 Best regards,
 Phoenix Crackers Team
-
-
-Booking Details:
-${idField}: ${idValue}
-Customer Name: ${customerDetails.customer_name || 'N/A'}
-Mobile: ${customerDetails.mobile_number || 'N/A'}
-Email: ${customerDetails.email || 'N/A'}
-Address: ${customerDetails.address || 'N/A'}
-District: ${customerDetails.district || 'N/A'}
-State: ${customerDetails.state || 'N/A'}
-Customer Type: ${bookingData.customer_type || 'User'}
-Net Rate: Rs.${parseFloat(bookingData.net_rate || 0).toFixed(2)}
-You Save: Rs.${parseFloat(bookingData.you_save || 0).toFixed(2)}
-Total: Rs.${parseFloat(bookingData.total || 0).toFixed(2)}
-
-Products:
-${productList}
-
-Attached is your estimate bill for reference.
-
-For any queries, contact us at +91 63836 59214.
-
-Best regards,
-Phoenix Crackers Team
-`;
+      `;
     } else {
       subject = `New ${type === 'quotation' ? 'Quotation' : 'Booking'}: ${idValue}`;
       text = `
@@ -377,7 +350,7 @@ ${productList}
     }
 
     const mailOptions = {
-      from: '"Phoenix Crackers" <nivasramasamy27@gmail.com>',
+      from: '"Phoenix Crackers" <kidscrackerspark@gmail.com>',
       to: toEmail,
       subject,
       text,
@@ -599,15 +572,8 @@ exports.createQuotation = async (req, res) => {
       pdfPath
     ]);
 
-    try {
-      const mediaId = await uploadPDF(pdfPath);
-      await sendTemplateWithPDF(mediaId, parsedTotal, customerDetails, 'quotation');
-    } catch (err) {
-      console.error('WhatsApp PDF sending failed:', err);
-    }
-
     await sendBookingEmail(
-      'nivasramasamy27@gmail.com',
+      'kidscrackerspark@gmail.com',
       {
         quotation_id,
         customer_type: finalCustomerType,
@@ -713,15 +679,8 @@ exports.updateQuotation = async (req, res) => {
       );
       pdfPath = pdfResult.pdfPath;
 
-      try {
-        const mediaId = await uploadPDF(pdfPath);
-        await sendTemplateWithPDF(mediaId, parsedTotal !== undefined ? parsedTotal : parseFloat(quotation.total || 0), customerDetails, 'quotation');
-      } catch (err) {
-        console.error('WhatsApp PDF sending failed:', err);
-      }
-
       await sendBookingEmail(
-        'nivasramasamy27@gmail.com',
+        'kidscrackerspark@gmail.com',
         {
           quotation_id,
           customer_type: quotation.customer_type,
@@ -885,7 +844,7 @@ exports.getQuotation = async (req, res) => {
       );
 
       await sendBookingEmail(
-        'nivasramasamy27@gmail.com',
+        'kidscrackerspark@gmail.com',
         {
           quotation_id,
           customer_type,
@@ -1004,7 +963,7 @@ exports.createBooking = async (req, res) => {
     `, [
       customer_id || null,
       order_id,
-      quotation_id || null, // Include quotation_id if provided
+      quotation_id || null,
       JSON.stringify(products),
       parsedNetRate,
       parsedYouSave,
@@ -1037,17 +996,9 @@ exports.createBooking = async (req, res) => {
         ['booked', quotation_id]
       );
     }
-
-    try {
-      const mediaId = await uploadPDF(pdfPath);
-      await sendTemplateWithPDF(mediaId, parsedTotal, customerDetails, 'invoice');
-    } catch (err) {
-      console.error('WhatsApp PDF sending failed:', err);
-    }
-
     // Send email to admin
     await sendBookingEmail(
-      'nivasramasamy27@gmail.com',
+      'kidscrackerspark@gmail.com',
       {
         order_id,
         customer_type: finalCustomerType,
@@ -1090,7 +1041,7 @@ exports.createBooking = async (req, res) => {
       customer_type: bookingResult.rows[0].customer_type,
       pdf_path: bookingResult.rows[0].pdf,
       order_id: bookingResult.rows[0].order_id,
-      quotation_id // Return quotation_id for frontend use
+      quotation_id
     });
   } catch (err) {
     await pool.query('ROLLBACK');
@@ -1177,13 +1128,6 @@ exports.updateBooking = async (req, res) => {
         }
       );
       pdfPath = pdfResult.pdfPath;
-
-      try {
-        const mediaId = await uploadPDF(pdfPath);
-        await sendTemplateWithPDF(mediaId, parsedTotal !== undefined ? parsedTotal : parseFloat(booking.total || 0), customerDetails, 'invoice');
-      } catch (err) {
-        console.error('WhatsApp PDF sending failed:', err);
-      }
     }
 
     const updateFields = [];
@@ -1260,7 +1204,7 @@ exports.updateBooking = async (req, res) => {
 
     // Send email to admin
     await sendBookingEmail(
-      'nivasramasamy27@gmail.com',
+      'kidscrackerspark@gmail.com',
       {
         order_id,
         customer_type: booking.customer_type,
@@ -1340,7 +1284,7 @@ exports.getInvoice = async (req, res) => {
       );
 
       await sendBookingEmail(
-        'nivasramasamy27@gmail.com',
+        'kidscrackerspark@gmail.com',
         {
           order_id,
           customer_type,
