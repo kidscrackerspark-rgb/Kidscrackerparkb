@@ -65,61 +65,23 @@ const generatePDF = (type, data, customerDetails, products, dbValues) => {
       const rowHeight = 25;
       const pageHeight = doc.page.height - doc.page.margins.bottom;
 
-      // Table Header
-      doc.moveTo(50, tableY - 5).lineTo(50 + tableWidth, tableY - 5).stroke();
-      doc.fontSize(10).font('Helvetica-Bold')
-        .text('Sl.No', colX[0] + 5, tableY, { width: colWidths[0] - 10, align: 'center' })
-        .text('Product', colX[1] + 5, tableY, { width: colWidths[1] - 10, align: 'left' })
-        .text('Quantity', colX[2] + 5, tableY, { width: colWidths[2] - 10, align: 'center' })
-        .text('Price', colX[3] + 5, tableY, { width: colWidths[3] - 10, align: 'right' })
-        .text('Total', colX[4] + 5, tableY, { width: colWidths[4] - 10, align: 'right' });
-      doc.moveTo(50, tableY + 15).lineTo(50 + tableWidth, tableY + 15).stroke();
-      colX.forEach((x, i) => {
-        doc.moveTo(x, tableY - 5).lineTo(x, tableY + 15).stroke();
-        if (i === colX.length - 1) {
-          doc.moveTo(x + colWidths[i], tableY - 5).lineTo(x + colWidths[i], tableY + 15).stroke();
-        }
-      });
+      // Initialize y
+      let y = tableY;
 
-      // Table Rows
-      let y = tableY + rowHeight;
-      products.forEach((product, index) => {
-        if (y + rowHeight > pageHeight - 50) {
-          doc.addPage();
-          y = doc.page.margins.top + 20;
-          doc.moveTo(50, y - 5).lineTo(50 + tableWidth, y - 5).stroke();
-          doc.fontSize(10).font('Helvetica-Bold')
-            .text('Sl.No', colX[0] + 5, y, { width: colWidths[0] - 10, align: 'center' })
-            .text('Product', colX[1] + 5, y, { width: colWidths[1] - 10, align: 'left' })
-            .text('Quantity', colX[2] + 5, y, { width: colWidths[2] - 10, align: 'center' })
-            .text('Price', colX[3] + 5, y, { width: colWidths[3] - 10, align: 'right' })
-            .text('Total', colX[4] + 5, y, { width: colWidths[4] - 10, align: 'right' });
-          doc.moveTo(50, y + 15).lineTo(50 + tableWidth, y + 15).stroke();
-          colX.forEach((x, i) => {
-            doc.moveTo(x, y - 5).lineTo(x, y + 15).stroke();
-            if (i === colX.length - 1) {
-              doc.moveTo(x + colWidths[i], y - 5).lineTo(x + colWidths[i], y + 15).stroke();
-            }
-          });
-          y += rowHeight;
-        }
+      // Split products into discounted and non-discounted
+      const discountedProducts = products.filter(p => parseFloat(p.discount || 0) > 0);
+      const netRateProducts = products.filter(p => !p.discount || parseFloat(p.discount) === 0);
 
-        const price = parseFloat(product.price) || 0;
-        const discount = parseFloat(product.discount || 0) || 0;
-        const productTotal = (price - (price * discount / 100)) * (product.quantity || 1);
-
-        let productName = product.productname || 'N/A';
-        if (productName.length > 30) {
-          productName = productName.substring(0, 27) + '...';
-        }
-
-        doc.font('Helvetica')
-          .text(index + 1, colX[0] + 5, y, { width: colWidths[0] - 10, align: 'center' })
-          .text(productName, colX[1] + 5, y, { width: colWidths[1] - 10, align: 'left' })
-          .text(product.quantity || 1, colX[2] + 5, y, { width: colWidths[2] - 10, align: 'center' })
-          .text(`Rs.${price.toFixed(2)}`, colX[3] + 5, y, { width: colWidths[3] - 10, align: 'right' })
-          .text(`Rs.${productTotal.toFixed(2)}`, colX[4] + 5, y, { width: colWidths[4] - 10, align: 'right' });
-
+      // Primary Table (Discounted Products)
+      if (discountedProducts.length > 0) {
+        doc.fontSize(12).font('Helvetica-Bold').text('DISCOUNTED PRODUCTS', 50, y - 20);
+        doc.moveTo(50, y - 5).lineTo(50 + tableWidth, y - 5).stroke();
+        doc.fontSize(10).font('Helvetica-Bold')
+          .text('Sl.No', colX[0] + 5, y, { width: colWidths[0] - 10, align: 'center' })
+          .text('Product', colX[1] + 5, y, { width: colWidths[1] - 10, align: 'left' })
+          .text('Quantity', colX[2] + 5, y, { width: colWidths[2] - 10, align: 'center' })
+          .text('Price', colX[3] + 5, y, { width: colWidths[3] - 10, align: 'right' })
+          .text('Total', colX[4] + 5, y, { width: colWidths[4] - 10, align: 'right' });
         doc.moveTo(50, y + 15).lineTo(50 + tableWidth, y + 15).stroke();
         colX.forEach((x, i) => {
           doc.moveTo(x, y - 5).lineTo(x, y + 15).stroke();
@@ -129,9 +91,139 @@ const generatePDF = (type, data, customerDetails, products, dbValues) => {
         });
 
         y += rowHeight;
-      });
+        discountedProducts.forEach((product, index) => {
+          if (y + rowHeight > pageHeight - 50) {
+            doc.addPage();
+            y = doc.page.margins.top + 20;
+            doc.fontSize(12).font('Helvetica-Bold').text('DISCOUNTED PRODUCTS (Continued)', 50, y - 20);
+            doc.moveTo(50, y - 5).lineTo(50 + tableWidth, y - 5).stroke();
+            doc.fontSize(10).font('Helvetica-Bold')
+              .text('Sl.No', colX[0] + 5, y, { width: colWidths[0] - 10, align: 'center' })
+              .text('Product', colX[1] + 5, y, { width: colWidths[1] - 10, align: 'left' })
+              .text('Quantity', colX[2] + 5, y, { width: colWidths[2] - 10, align: 'center' })
+              .text('Price', colX[3] + 5, y, { width: colWidths[3] - 10, align: 'right' })
+              .text('Total', colX[4] + 5, y, { width: colWidths[4] - 10, align: 'right' });
+            doc.moveTo(50, y + 15).lineTo(50 + tableWidth, y + 15).stroke();
+            colX.forEach((x, i) => {
+              doc.moveTo(x, y - 5).lineTo(x, y + 15).stroke();
+              if (i === colX.length - 1) {
+                doc.moveTo(x + colWidths[i], y - 5).lineTo(x + colWidths[i], y + 15).stroke();
+              }
+            });
+            y += rowHeight;
+          }
 
-      y += 10;
+          const price = parseFloat(product.price) || 0;
+          const discount = parseFloat(product.discount || 0) || 0;
+          const productTotal = (price - (price * discount / 100)) * (product.quantity || 1);
+
+          let productName = product.productname || 'N/A';
+          if (productName.length > 30) {
+            productName = productName.substring(0, 27) + '...';
+          }
+
+          doc.font('Helvetica')
+            .text(index + 1, colX[0] + 5, y, { width: colWidths[0] - 10, align: 'center' })
+            .text(productName, colX[1] + 5, y, { width: colWidths[1] - 10, align: 'left' })
+            .text(product.quantity || 1, colX[2] + 5, y, { width: colWidths[2] - 10, align: 'center' })
+            .text(`Rs.${price.toFixed(2)}`, colX[3] + 5, y, { width: colWidths[3] - 10, align: 'right' })
+            .text(`Rs.${productTotal.toFixed(2)}`, colX[4] + 5, y, { width: colWidths[4] - 10, align: 'right' });
+
+          doc.moveTo(50, y + 15).lineTo(50 + tableWidth, y + 15).stroke();
+          colX.forEach((x, i) => {
+            doc.moveTo(x, y - 5).lineTo(x, y + 15).stroke();
+            if (i === colX.length - 1) {
+              doc.moveTo(x + colWidths[i], y - 5).lineTo(x + colWidths[i], y + 15).stroke();
+            }
+          });
+
+          y += rowHeight;
+        });
+      }
+
+      // Secondary Table (Net Rate Products)
+      if (netRateProducts.length > 0) {
+        y += 20;
+        if (y + rowHeight + 30 > pageHeight - 50) {
+          doc.addPage();
+          y = doc.page.margins.top + 20;
+        }
+
+        doc.fontSize(12).font('Helvetica-Bold').text('NET RATE PRODUCTS', 50, y);
+        y += 20;
+        doc.moveTo(50, y - 5).lineTo(50 + tableWidth, y - 5).stroke();
+        doc.fontSize(10).font('Helvetica-Bold')
+          .text('Sl.No', colX[0] + 5, y, { width: colWidths[0] - 10, align: 'center' })
+          .text('Product', colX[1] + 5, y, { width: colWidths[1] - 10, align: 'left' })
+          .text('Quantity', colX[2] + 5, y, { width: colWidths[2] - 10, align: 'center' })
+          .text('Price', colX[3] + 5, y, { width: colWidths[3] - 10, align: 'right' })
+          .text('Total', colX[4] + 5, y, { width: colWidths[4] - 10, align: 'right' });
+        doc.moveTo(50, y + 15).lineTo(50 + tableWidth, y + 15).stroke();
+        colX.forEach((x, i) => {
+          doc.moveTo(x, y - 5).lineTo(x, y + 15).stroke();
+          if (i === colX.length - 1) {
+            doc.moveTo(x + colWidths[i], y - 5).lineTo(x + colWidths[i], y + 15).stroke();
+          }
+        });
+
+        y += rowHeight;
+        netRateProducts.forEach((product, index) => {
+          if (y + rowHeight > pageHeight - 50) {
+            doc.addPage();
+            y = doc.page.margins.top + 20;
+            doc.fontSize(12).font('Helvetica-Bold').text('NET RATE PRODUCTS (Continued)', 50, y - 20);
+            doc.moveTo(50, y - 5).lineTo(50 + tableWidth, y - 5).stroke();
+            doc.fontSize(10).font('Helvetica-Bold')
+              .text('Sl.No', colX[0] + 5, y, { width: colWidths[0] - 10, align: 'center' })
+              .text('Product', colX[1] + 5, y, { width: colWidths[1] - 10, align: 'left' })
+              .text('Quantity', colX[2] + 5, y, { width: colWidths[2] - 10, align: 'center' })
+              .text('Price', colX[3] + 5, y, { width: colWidths[3] - 10, align: 'right' })
+              .text('Total', colX[4] + 5, y, { width: colWidths[4] - 10, align: 'right' });
+            doc.moveTo(50, y + 15).lineTo(50 + tableWidth, y + 15).stroke();
+            colX.forEach((x, i) => {
+              doc.moveTo(x, y - 5).lineTo(x, y + 15).stroke();
+              if (i === colX.length - 1) {
+                doc.moveTo(x + colWidths[i], y - 5).lineTo(x + colWidths[i], y + 15).stroke();
+              }
+            });
+            y += rowHeight;
+          }
+
+          const price = parseFloat(product.price) || 0;
+          const productTotal = price * (product.quantity || 1);
+
+          let productName = product.productname || 'N/A';
+          if (productName.length > 30) {
+            productName = productName.substring(0, 27) + '...';
+          }
+
+          doc.font('Helvetica')
+            .text(index + 1, colX[0] + 5, y, { width: colWidths[0] - 10, align: 'center' })
+            .text(productName, colX[1] + 5, y, { width: colWidths[1] - 10, align: 'left' })
+            .text(product.quantity || 1, colX[2] + 5, y, { width: colWidths[2] - 10, align: 'center' })
+            .text(`Rs.${price.toFixed(2)}`, colX[3] + 5, y, { width: colWidths[3] - 10, align: 'right' })
+            .text(`Rs.${productTotal.toFixed(2)}`, colX[4] + 5, y, { width: colWidths[4] - 10, align: 'right' });
+
+          doc.moveTo(50, y + 15).lineTo(50 + tableWidth, y + 15).stroke();
+          colX.forEach((x, i) => {
+            doc.moveTo(x, y - 5).lineTo(x, y + 15).stroke();
+            if (i === colX.length - 1) {
+              doc.moveTo(x + colWidths[i], y - 5).lineTo(x + colWidths[i], y + 15).stroke();
+            }
+          });
+
+          y += rowHeight;
+        });
+      }
+
+      // Handle case with no products
+      if (products.length === 0) {
+        y += 20;
+        doc.fontSize(12).font('Helvetica').text('No products available', 50, y, { align: 'center' });
+        y += 20;
+      }
+
+      // Totals Section
       if (y + 90 > pageHeight - 50) {
         doc.addPage();
         y = doc.page.margins.top + 20;
