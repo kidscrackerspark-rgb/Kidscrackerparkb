@@ -9,9 +9,6 @@ const pool = new Pool({
   database: process.env.PGDATABASE,
 });
 
-const ACCESS_TOKEN = 'EAAKZAUdN55kEBPLcupTZAXpIZCAszZBupSiKxRCWe5zYiZB0LZCuUFl3vTLjWDBuAgU1u6f29S8e2XkdzgrSfn8PpiT0jLSZCAOU9aGhDoOlTL9MrxZBgG0vZBCDt3dHLFlM2GHOrwvJP2WjZB2yQix9FOh6Wduq1LhXgJQpHYTYoBGbiTc8ek9LAZBXeXjPQJa8QaPAvvbcGwPIAw63P1dOAX4qfqC8AS7fJDKZAZBLbLmXEM8Hv';
-const PHONE_NUMBER_ID = '660922473779560';
-
 const createTransportTable = `
   CREATE TABLE IF NOT EXISTS transport_details (
     id SERIAL PRIMARY KEY,
@@ -32,75 +29,12 @@ const alterBookingsTable = `
 pool.query(createTransportTable).catch((err) => console.error('Error creating transport table:', err));
 pool.query(alterBookingsTable).catch((err) => console.error('Error altering bookings table:', err));
 
-async function sendStatusUpdate(mobileNumber, status, transportDetails = null) {
-  if (!mobileNumber) {
-    console.warn('Mobile number is missing; skipping WhatsApp notification');
-    return;
-  }
-
-  let recipientNumber = mobileNumber.replace(/\D/g, '');
-  if (recipientNumber.length === 10) {
-    recipientNumber = `+91${recipientNumber}`;
-  } else if (recipientNumber.length === 12 && recipientNumber.startsWith('91')) {
-    recipientNumber = `+${recipientNumber}`;
-  } else {
-    console.warn(`Invalid mobile number format: ${mobileNumber}; skipping WhatsApp notification`);
-    return;
-  }
-
-  const payload = {
-    messaging_product: 'whatsapp',
-    to: recipientNumber,
-    type: 'template',
-    template: {
-      name: 'hello_world',
-      language: { code: 'en_US' },
-      components: [
-        {
-          type: 'body',
-          parameters: [
-            { type: 'text', text: status },
-            ...(status === 'dispatched' && transportDetails
-              ? [
-                  { type: 'text', text: transportDetails.transport_name || 'N/A' },
-                  { type: 'text', text: transportDetails.lr_number || 'N/A' },
-                  { type: 'text', text: transportDetails.transport_contact || 'N/A' },
-                ]
-              : [
-                  { type: 'text', text: 'N/A' },
-                  { type: 'text', text: 'N/A' },
-                  { type: 'text', text: 'N/A' },
-                ]),
-          ],
-        },
-      ],
-    },
-  };
-
-  try {
-    const res = await axios.post(
-      `https://graph.facebook.com/v23.0/${PHONE_NUMBER_ID}/messages`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${ACCESS_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    console.log(`✅ Status update sent to ${recipientNumber} for status: ${status}`);
-    console.log(JSON.stringify(res.data, null, 2));
-  } catch (err) {
-    console.error('Error sending WhatsApp status update:', err.response ? JSON.stringify(err.response.data, null, 2) : err.message);
-  }
-}
 
 exports.getAllBookings = async (req, res) => {
   try {
     const { status, customerType } = req.query;
     let query = `
-      SELECT id, order_id, customer_name, district, state, status, customer_type, total, payment_method, transaction_id
-      FROM public.bookings
+      SELECT * FROM public.bookings
     `;
     const conditions = [];
     const params = [];
@@ -174,9 +108,7 @@ exports.updateBookingStatus = async (req, res) => {
     }
 
     await pool.query('COMMIT');
-
-    await sendStatusUpdate(result.rows[0].mobile_number, status, transportData);
-
+    
     res.status(200).json({ message: 'Status updated successfully', data: result.rows[0] });
   } catch (err) {
     await pool.query('ROLLBACK');
