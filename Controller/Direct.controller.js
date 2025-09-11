@@ -246,7 +246,7 @@ const generatePDF = (type, data, customerDetails, products, dbValues) => {
         y = doc.page.margins.top + 20;
       }
       doc.fontSize(10).font('Helvetica')
-        .text('Thank you for your business!', 50, y, { align: 'center' })
+        .text('Thank you for your business! Dear customers the logistics payments are to be paid by yourself', 50, y, { align: 'center' })
         .text('For any queries, contact us at +91 96297 24212', 50, y + 15, { align: 'center' });
 
       doc.end();
