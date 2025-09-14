@@ -667,26 +667,6 @@ exports.createQuotation = async (req, res) => {
       'pending',
       pdfPath
     ]);
-
-    try {
-      await sendBookingEmail(
-        'kidscrackerspark@gmail.com',
-        {
-          quotation_id,
-          customer_type: finalCustomerType,
-          net_rate: parsedNetRate,
-          you_save: parsedYouSave,
-          total: parsedTotal
-        },
-        customerDetails,
-        pdfPath,
-        products,
-        'quotation'
-      );
-    } catch (emailErr) {
-      console.error(`Failed to send email for quotation_id ${quotation_id}:`, emailErr.message);
-    }
-
     res.status(201).json({
       message: 'Quotation created successfully',
       id: result.rows[0].id,
@@ -778,25 +758,6 @@ exports.updateQuotation = async (req, res) => {
         }
       );
       pdfPath = pdfResult.pdfPath;
-
-      try {
-        await sendBookingEmail(
-          'kidscrackerspark@gmail.com',
-          {
-            quotation_id,
-            customer_type: quotation.customer_type,
-            net_rate: parsedNetRate !== undefined ? parsedNetRate : parseFloat(quotation.net_rate || 0),
-            you_save: parsedYouSave !== undefined ? parsedYouSave : parseFloat(quotation.you_save || 0),
-            total: parsedTotal !== undefined ? parsedTotal : parseFloat(quotation.total || 0)
-          },
-          customerDetails,
-          pdfPath,
-          products,
-          'quotation'
-        );
-      } catch (emailErr) {
-        console.error(`Failed to send email for quotation_id ${quotation_id} during update:`, emailErr.message);
-      }
     }
 
     const updateFields = [];
@@ -942,25 +903,6 @@ exports.getQuotation = async (req, res) => {
         'UPDATE public.fwcquotations SET pdf = $1 WHERE quotation_id = $2',
         [pdfPath, quotation_id]
       );
-
-      try {
-        await sendBookingEmail(
-          'kidscrackerspark@gmail.com',
-          {
-            quotation_id,
-            customer_type,
-            net_rate: parseFloat(net_rate || 0),
-            you_save: parseFloat(you_save || 0),
-            total: parseFloat(total || 0)
-          },
-          { customer_name, address, mobile_number, email, district, state },
-          pdfPath,
-          parsedProducts,
-          'quotation'
-        );
-      } catch (emailErr) {
-        console.error(`Failed to send email during quotation PDF regeneration for ${quotation_id}:`, emailErr.message);
-      }
     }
 
     if (!fs.existsSync(pdfPath)) {
@@ -971,7 +913,6 @@ exports.getQuotation = async (req, res) => {
     const safeCustomerName = (customer_name || 'unknown').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=${safeCustomerName}-${quotation_id}-quotation.pdf`);
-    console.log(`Serving PDF: ${pdfPath}`);
     fs.createReadStream(pdfPath).pipe(res);
   } catch (err) {
     console.error(`Failed to fetch quotation ${req.params.quotation_id}:`, err.message);
@@ -1264,52 +1205,6 @@ exports.updateBooking = async (req, res) => {
     updateValues.push(order_id);
 
     const result = await pool.query(query, updateValues);
-
-    // Send email to customer if email exists and status is updated
-    try {
-      if (customerDetails.email && status) {
-        await sendBookingEmail(
-          customerDetails.email,
-          {
-            order_id,
-            customer_type: booking.customer_type,
-            net_rate: parsedNetRate !== undefined ? parsedNetRate : parseFloat(booking.net_rate || 0),
-            you_save: parsedYouSave !== undefined ? parsedYouSave : parseFloat(booking.you_save || 0),
-            total: parsedTotal !== undefined ? parsedTotal : parseFloat(booking.total || 0)
-          },
-          customerDetails,
-          pdfPath,
-          products || JSON.parse(booking.products),
-          'invoice',
-          status,
-          transport_details
-        );
-      }
-    } catch (emailErr) {
-      console.error(`Failed to send customer email for order_id ${order_id} during update:`, emailErr.message);
-    }
-
-    // Send email to admin
-    try {
-      await sendBookingEmail(
-        'kidscrackerspark@gmail.com',
-        {
-          order_id,
-          customer_type: booking.customer_type,
-          net_rate: parsedNetRate !== undefined ? parsedNetRate : parseFloat(booking.net_rate || 0),
-          you_save: parsedYouSave !== undefined ? parsedYouSave : parseFloat(booking.you_save || 0),
-          total: parsedTotal !== undefined ? parsedTotal : parseFloat(booking.total || 0)
-        },
-        customerDetails,
-        pdfPath,
-        products || JSON.parse(booking.products),
-        'invoice',
-        status,
-        transport_details
-      );
-    } catch (emailErr) {
-      console.error(`Failed to send admin email for order_id ${order_id} during update:`, emailErr.message);
-    }
 
     res.status(200).json({
       message: 'Booking updated successfully',
