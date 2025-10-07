@@ -257,8 +257,13 @@ const generatePDF = (type, data, customerDetails, products, dbValues) => {
       y += 20;
       doc.text(`You Save: Rs.${youSave.toFixed(2)}`, 350, y, { width: 150, align: 'right' });
       y += 20;
-      doc.text(`Additional Discount (${additionalDiscount.toFixed(2)}%): Rs.${additionalDiscountAmount.toFixed(2)}`, 350, y, { width: 150, align: 'right' });
-      y += 20;
+      
+      // Conditionally display Additional Discount if > 0
+      if (additionalDiscount > 0) {
+        doc.text(`Additional Discount (${additionalDiscount.toFixed(2)}%): Rs.${additionalDiscountAmount.toFixed(2)}`, 350, y, { width: 150, align: 'right' });
+        y += 20;
+      }
+      
       doc.text(`Grand Total: Rs.${grandTotal.toFixed(2)}`, 350, y, { width: 150, align: 'right' });
       y += 30;
 
